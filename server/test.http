@@ -1,23 +1,21 @@
+# LostLink API tests
+#
+# Runs top to bottom with no copy-pasting: each request that produces a
+# token or an id is given a name, and the later requests read from it.
+# Requires the VS Code "REST Client" extension. Click "Send Request".
+#
+# Re-running is safe. The two signups return 400 "User already exists"
+# the second time, which is fine because the tokens come from the logins.
+
 @baseUrl = http://localhost:5001/api
-
-# paste the token you get from signup/login here
-@token = PASTE_TOKEN_HERE
-
-# paste a post id you get from "Create Found Post" here
-@postId = PASTE_POST_ID_HERE
-
-# second user's token, used for the claim requests
-@claimantToken = PASTE_SECOND_USER_TOKEN_HERE
-
-# paste a claim id you get from "Create Claim" here
-@claimId = PASTE_CLAIM_ID_HERE
 
 
 ### Health Check
 GET {{baseUrl}}/health
 
 
-### Signup
+### Signup - User A (the finder)
+# expect: 201,400
 POST {{baseUrl}}/auth/signup
 Content-Type: application/json
 
@@ -29,7 +27,8 @@ Content-Type: application/json
 }
 
 
-### Login
+### Login - User A
+# @name loginA
 POST {{baseUrl}}/auth/login
 Content-Type: application/json
 
@@ -38,8 +37,39 @@ Content-Type: application/json
   "password": "123456"
 }
 
+###
+@token = {{loginA.response.body.$.token}}
 
-### Create Found Post (protected)
+
+### Signup - User B (the claimant)
+# expect: 201,400
+POST {{baseUrl}}/auth/signup
+Content-Type: application/json
+
+{
+  "name": "Nihal",
+  "email": "nihal@lostlink.com",
+  "password": "123456",
+  "campus": "Anurag University"
+}
+
+
+### Login - User B
+# @name loginB
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "nihal@lostlink.com",
+  "password": "123456"
+}
+
+###
+@claimantToken = {{loginB.response.body.$.token}}
+
+
+### Create Found Post (User A)
+# @name createFound
 POST {{baseUrl}}/posts
 Content-Type: application/json
 Authorization: Bearer {{token}}
@@ -55,19 +85,57 @@ Authorization: Bearer {{token}}
   "verificationAnswer": "Blue"
 }
 
+###
+@postId = {{createFound.response.body.$.post._id}}
 
-### Create Lost Post (protected)
+
+### Create Lost Post (User B) - should match the wallet above
+# @name createLost
+POST {{baseUrl}}/posts
+Content-Type: application/json
+Authorization: Bearer {{claimantToken}}
+
+{
+  "type": "lost",
+  "title": "Lost black leather wallet",
+  "category": "documents",
+  "description": "Lost my black leather wallet somewhere near the library",
+  "location": "Central Library",
+  "date": "2026-08-26"
+}
+
+###
+@lostPostId = {{createLost.response.body.$.post._id}}
+
+
+### Create Found Post missing verification (should fail)
+# expect: 400
 POST {{baseUrl}}/posts
 Content-Type: application/json
 Authorization: Bearer {{token}}
 
 {
-  "type": "lost",
-  "title": "Lost iPhone 13",
-  "category": "electronics",
-  "description": "Blue iPhone lost near the canteen",
+  "type": "found",
+  "title": "Found umbrella",
+  "category": "accessories",
+  "description": "Blue umbrella",
   "location": "Canteen",
-  "date": "2026-08-26"
+  "date": "2026-08-27"
+}
+
+
+### Create Post without a token (should fail)
+# expect: 401
+POST {{baseUrl}}/posts
+Content-Type: application/json
+
+{
+  "type": "lost",
+  "title": "No token",
+  "category": "misc",
+  "description": "No token",
+  "location": "Nowhere",
+  "date": "2026-08-27"
 }
 
 
@@ -75,8 +143,12 @@ Authorization: Bearer {{token}}
 GET {{baseUrl}}/posts
 
 
-### Get Single Post
+### Get Single Post - shows the question, never the answer
 GET {{baseUrl}}/posts/{{postId}}
+
+
+### Possible Matches for the found post
+GET {{baseUrl}}/posts/{{postId}}/matches
 
 
 ### Search by keyword
@@ -84,14 +156,22 @@ GET {{baseUrl}}/posts/search?q=wallet
 
 
 ### Search by category
-GET {{baseUrl}}/posts/search?category=electronics
+GET {{baseUrl}}/posts/search?category=documents
 
 
 ### Search by category + keyword
-GET {{baseUrl}}/posts/search?category=electronics&q=phone
+GET {{baseUrl}}/posts/search?category=documents&q=wallet
 
 
-### Update Post (protected, owner only)
+### Search by type - Lost tab
+GET {{baseUrl}}/posts/search?type=lost
+
+
+### Search by type - Found tab
+GET {{baseUrl}}/posts/search?type=found
+
+
+### Update Post (owner only)
 PATCH {{baseUrl}}/posts/{{postId}}
 Content-Type: application/json
 Authorization: Bearer {{token}}
@@ -102,16 +182,42 @@ Authorization: Bearer {{token}}
 }
 
 
-### Delete Post (protected, owner only)
-DELETE {{baseUrl}}/posts/{{postId}}
+### Update someone else's post (should fail)
+# expect: 403
+PATCH {{baseUrl}}/posts/{{postId}}
+Content-Type: application/json
+Authorization: Bearer {{claimantToken}}
+
+{
+  "title": "Hacked"
+}
+
+
+### Set status to claimed by hand (should fail - only approving a claim does that)
+# expect: 400
+PATCH {{baseUrl}}/posts/{{postId}}
+Content-Type: application/json
 Authorization: Bearer {{token}}
 
+{
+  "status": "claimed"
+}
 
-### Possible Matches for a post
-GET {{baseUrl}}/posts/{{postId}}/matches
+
+### Claim your own post (should fail)
+# expect: 400
+POST {{baseUrl}}/claims
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "postId": "{{postId}}",
+  "answer": "Blue"
+}
 
 
-### Create Claim (protected, second user)
+### Create Claim (User B, correct answer)
+# @name createClaim
 POST {{baseUrl}}/claims
 Content-Type: application/json
 Authorization: Bearer {{claimantToken}}
@@ -122,22 +228,90 @@ Authorization: Bearer {{claimantToken}}
   "message": "I lost it on Tuesday near the library"
 }
 
+###
+@claimId = {{createClaim.response.body.$.claim.id}}
 
-### My Claims (claims I submitted)
+
+### Claim the same post twice (should fail)
+# expect: 400
+POST {{baseUrl}}/claims
+Content-Type: application/json
+Authorization: Bearer {{claimantToken}}
+
+{
+  "postId": "{{postId}}",
+  "answer": "Blue"
+}
+
+
+### My Claims - User B, no answerMatched here
 GET {{baseUrl}}/claims/my
 Authorization: Bearer {{claimantToken}}
 
 
-### Received Claims (claims on my posts)
+### Received Claims - User A sees the answer and whether it matched
 GET {{baseUrl}}/claims/received
 Authorization: Bearer {{token}}
 
 
-### Approve Claim (post owner only)
+### Approve a claim you do not own (should fail)
+# expect: 403
+PATCH {{baseUrl}}/claims/{{claimId}}/approve
+Authorization: Bearer {{claimantToken}}
+
+
+### Approve Claim (post owner) - item becomes claimed
 PATCH {{baseUrl}}/claims/{{claimId}}/approve
 Authorization: Bearer {{token}}
 
 
-### Reject Claim (post owner only)
+### Post is now claimed
+GET {{baseUrl}}/posts/{{postId}}
+
+
+### Approve the same claim again (should fail)
+# expect: 400
+PATCH {{baseUrl}}/claims/{{claimId}}/approve
+Authorization: Bearer {{token}}
+
+
+### Reject Claim - the other branch. Fails here because it was approved above.
+# expect: 400
 PATCH {{baseUrl}}/claims/{{claimId}}/reject
+Authorization: Bearer {{token}}
+
+
+### Delete Post - uses a throwaway post so the demo data above survives
+# @name throwaway
+POST {{baseUrl}}/posts
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "type": "lost",
+  "title": "Temporary post for the delete test",
+  "category": "misc",
+  "description": "Created only so the next request can delete it",
+  "location": "Nowhere",
+  "date": "2026-08-27"
+}
+
+###
+@throwawayId = {{throwaway.response.body.$.post._id}}
+
+
+### Delete someone else's post (should fail)
+# expect: 403
+DELETE {{baseUrl}}/posts/{{throwawayId}}
+Authorization: Bearer {{claimantToken}}
+
+
+### Delete your own post
+DELETE {{baseUrl}}/posts/{{throwawayId}}
+Authorization: Bearer {{token}}
+
+
+### Delete it again (should fail)
+# expect: 404
+DELETE {{baseUrl}}/posts/{{throwawayId}}
 Authorization: Bearer {{token}}
