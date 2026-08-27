@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
-import api from "../api/axios.js";
+import api, { getErrorMessage } from "../api/axios.js";
 
 const statusClass = (status) => {
   if (status === "open") {
@@ -29,7 +29,7 @@ const MyPosts = () => {
 
       setPosts(res.data.posts);
     } catch (err) {
-      setError(err.response?.data?.message || "Could not load your posts");
+      setError(getErrorMessage(err, "Could not load your posts"));
     }
 
     setLoading(false);
@@ -47,7 +47,7 @@ const MyPosts = () => {
 
       loadPosts();
     } catch (err) {
-      setError(err.response?.data?.message || "Could not update the post");
+      setError(getErrorMessage(err, "Could not update the post"));
     }
   };
 
@@ -59,7 +59,7 @@ const MyPosts = () => {
 
       loadPosts();
     } catch (err) {
-      setError(err.response?.data?.message || "Could not update the post");
+      setError(getErrorMessage(err, "Could not update the post"));
     }
   };
 
@@ -75,7 +75,7 @@ const MyPosts = () => {
 
       loadPosts();
     } catch (err) {
-      setError(err.response?.data?.message || "Could not delete the post");
+      setError(getErrorMessage(err, "Could not delete the post"));
     }
   };
 

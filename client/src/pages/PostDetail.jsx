@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 
-import api from "../api/axios.js";
+import api, { getErrorMessage } from "../api/axios.js";
 import PostCard from "../components/PostCard.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 
@@ -41,7 +41,7 @@ const PostDetail = () => {
 
       setMatches(matchRes.data.matches);
     } catch (err) {
-      setError(err.response?.data?.message || "Could not load this post");
+      setError(getErrorMessage(err, "Could not load this post"));
     }
 
     setLoading(false);
@@ -67,7 +67,7 @@ const PostDetail = () => {
 
       setClaimSent(true);
     } catch (err) {
-      setClaimError(err.response?.data?.message || "Could not send the claim");
+      setClaimError(getErrorMessage(err, "Could not send the claim"));
     }
 
     setSending(false);

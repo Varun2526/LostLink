@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import api from "../api/axios.js";
+import api, { getErrorMessage } from "../api/axios.js";
 import PostCard from "../components/PostCard.jsx";
 
 const Home = () => {
@@ -34,7 +34,7 @@ const Home = () => {
         setPosts(res.data.posts);
       }
     } catch (err) {
-      setError(err.response?.data?.message || "Could not load posts");
+      setError(getErrorMessage(err, "Could not load posts"));
     }
 
     setLoading(false);

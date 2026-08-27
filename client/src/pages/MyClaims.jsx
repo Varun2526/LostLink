@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
-import api from "../api/axios.js";
+import api, { getErrorMessage } from "../api/axios.js";
 
 const statusClass = (status) => {
   if (status === "approved") {
@@ -27,7 +27,7 @@ const MyClaims = () => {
 
         setClaims(res.data.claims);
       } catch (err) {
-        setError(err.response?.data?.message || "Could not load your claims");
+        setError(getErrorMessage(err, "Could not load your claims"));
       }
 
       setLoading(false);

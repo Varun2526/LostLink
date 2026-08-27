@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
+import { getErrorMessage } from "../api/axios.js";
 import { useAuth } from "../context/AuthContext.jsx";
 
 const Login = () => {
@@ -26,7 +27,7 @@ const Login = () => {
 
       navigate("/");
     } catch (err) {
-      setError(err.response?.data?.message || "Something went wrong");
+      setError(getErrorMessage(err, "Something went wrong"));
     }
 
     setLoading(false);

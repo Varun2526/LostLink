@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import api from "../api/axios.js";
+import api, { getErrorMessage } from "../api/axios.js";
 
 const CreatePost = () => {
   const navigate = useNavigate();
@@ -35,7 +35,7 @@ const CreatePost = () => {
 
       navigate(`/posts/${res.data.post._id}`);
     } catch (err) {
-      setError(err.response?.data?.message || "Could not create the post");
+      setError(getErrorMessage(err, "Could not create the post"));
     }
 
     setLoading(false);

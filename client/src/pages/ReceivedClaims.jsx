@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
-import api from "../api/axios.js";
+import api, { getErrorMessage } from "../api/axios.js";
 
 const statusClass = (status) => {
   if (status === "approved") {
@@ -29,7 +29,7 @@ const ReceivedClaims = () => {
 
       setClaims(res.data.claims);
     } catch (err) {
-      setError(err.response?.data?.message || "Could not load claim requests");
+      setError(getErrorMessage(err, "Could not load claim requests"));
     }
 
     setLoading(false);
@@ -48,7 +48,7 @@ const ReceivedClaims = () => {
 
       await loadClaims();
     } catch (err) {
-      setError(err.response?.data?.message || "Could not update the claim");
+      setError(getErrorMessage(err, "Could not update the claim"));
     }
 
     setBusyId("");
