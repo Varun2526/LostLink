@@ -502,7 +502,9 @@ Both platforms redeploy automatically on push to `main`. `VITE_API_URL` is inlin
 | **Nimishakavi Sri Nihal** | Claims & Matching | Claim model, claim lifecycle (submit/approve/reject), verification answer comparison, rule-based matching engine |
 | **Hareesh** | Security & Sessions | Rate limiting (3 tiers), input validation & sanitization, refresh-token rotation, logout revocation |
 | **Nigama** | Notifications & Dashboard | Notification model & triggers, notification bell UI, dashboard statistics endpoint and page |
-| **Jayaram** | Media & Deployment | Cloudinary upload pipeline, multer handling, Vercel/Render/Atlas deployment, environment config, documentation & API testing |
+| **Jayaram** | UI Shell, Media & Deployment | App shell & Tailwind setup, shared navigation, Cloudinary upload pipeline, Vercel/Render/Atlas deployment, documentation & API testing |
+
+Every member owns a **full vertical slice** — the Mongoose model, controller, routes, and the React pages/components for their area — rather than a horizontal "one person does all the backend" split.
 
 ### Work division in detail
 
@@ -511,7 +513,8 @@ Both platforms redeploy automatically on push to `main`. `VITE_API_URL` is inlin
 - `controllers/authController.js` (signup, login), `middleware/authMiddleware.js`
 - `controllers/postController.js` — create, read, update, delete, search, my-posts
 - Enforced the rule that `verificationAnswer` is never returned by any public endpoint
-- Frontend: `Login`, `Signup`, `Home` (browse + search), `CreatePost`, `MyPosts`, `AuthContext`, axios client
+- Frontend: `Login`, `Signup`, `Home` (browse + search), `CreatePost`, `MyPosts`
+- Frontend shared: `App.jsx` route table, `ProtectedRoute`, `PostCard`, `AuthContext`, base axios client
 
 **Nimishakavi Sri Nihal — Claims & Matching**
 - `models/Claim.js`, `controllers/claimController.js`
@@ -537,4 +540,5 @@ Both platforms redeploy automatically on push to `main`. `VITE_API_URL` is inlin
 - `config/cloudinary.js`, `middleware/upload.js`, `controllers/uploadController.js`
 - Graceful degradation to a paste-a-link field when Cloudinary is unconfigured
 - Vercel and Render deployment, `vercel.json` SPA rewrites, MongoDB Atlas setup, environment variables
+- Frontend shell: `main.jsx`, `index.css`, Tailwind v4 + Vite configuration, `Navbar` layout
 - `test.http` — 34 chained API requests; this documentation
