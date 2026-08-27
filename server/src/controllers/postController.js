@@ -302,6 +302,28 @@ const searchPosts = async (req, res) => {
   }
 };
 
+// Every post the logged in user has made, whatever the status.
+// GET /posts only shows open posts, so the owner needs this to still
+// see their own claimed and resolved items.
+const getMyPosts = async (req, res) => {
+  try {
+    const posts = await ItemPost.find({ postedBy: req.userId })
+      .sort({ createdAt: -1 })
+      .populate("postedBy", "name campus");
+
+    res.json({
+      count: posts.length,
+      posts,
+    });
+  } catch (error) {
+    console.log("Get my posts error:", error.message);
+
+    res.status(500).json({
+      message: "Server error",
+    });
+  }
+};
+
 // Suggests posts of the opposite type that look like the same item.
 // A lost post is matched against found posts and the other way around.
 const getMatches = async (req, res) => {
@@ -353,4 +375,5 @@ export {
   deletePost,
   searchPosts,
   getMatches,
+  getMyPosts,
 };

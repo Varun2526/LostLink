@@ -8,6 +8,7 @@ import {
   deletePost,
   searchPosts,
   getMatches,
+  getMyPosts,
 } from "../controllers/postController.js";
 
 import authMiddleware from "../middleware/authMiddleware.js";
@@ -19,6 +20,9 @@ const router = express.Router();
 router.get("/", getPosts);
 
 router.get("/search", searchPosts);
+
+// must stay above /:id so "mine" is not read as an id
+router.get("/mine", authMiddleware, getMyPosts);
 
 router.get("/:id", getPostById);
 
