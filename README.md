@@ -494,9 +494,47 @@ Both platforms redeploy automatically on push to `main`. `VITE_API_URL` is inlin
 
 ## Team
 
-**Team 13**
+**Team 13** — five members, five ownership areas.
 
-| Member | Responsibility |
-|---|---|
-| Varun Koppula | Authentication, JWT middleware, item posts, search, frontend integration |
-| Nimishakavi Sri Nihal | Claims, verification flow, matching engine |
+| Member | Module | Responsibility |
+|---|---|---|
+| **Varun Koppula** | Authentication & Item Posts | User model, signup/login, JWT middleware, ItemPost model, post CRUD, search & filtering, frontend integration |
+| **Nimishakavi Sri Nihal** | Claims & Matching | Claim model, claim lifecycle (submit/approve/reject), verification answer comparison, rule-based matching engine |
+| **Hareesh** | Security & Sessions | Rate limiting (3 tiers), input validation & sanitization, refresh-token rotation, logout revocation |
+| **Nigama** | Notifications & Dashboard | Notification model & triggers, notification bell UI, dashboard statistics endpoint and page |
+| **Jayaram** | Media & Deployment | Cloudinary upload pipeline, multer handling, Vercel/Render/Atlas deployment, environment config, documentation & API testing |
+
+### Work division in detail
+
+**Varun Koppula — Authentication & Item Posts**
+- `models/User.js`, `models/ItemPost.js`
+- `controllers/authController.js` (signup, login), `middleware/authMiddleware.js`
+- `controllers/postController.js` — create, read, update, delete, search, my-posts
+- Enforced the rule that `verificationAnswer` is never returned by any public endpoint
+- Frontend: `Login`, `Signup`, `Home` (browse + search), `CreatePost`, `MyPosts`, `AuthContext`, axios client
+
+**Nimishakavi Sri Nihal — Claims & Matching**
+- `models/Claim.js`, `controllers/claimController.js`
+- Verification comparison logic and the `answerMatched` flag shown only to the post owner
+- Auto-rejection of competing claims when one is approved
+- `utils/matching.js` — Dice-coefficient scoring with category and location weighting
+- Frontend: `PostDetail` claim form, `MyClaims`, `ReceivedClaims`
+
+**Hareesh — Security & Sessions**
+- `middleware/rateLimiter.js` — global, auth, and write limiters; `trust proxy` for Render
+- `middleware/validate.js` and `validators/` — auth, post, and claim rule sets
+- `models/RefreshToken.js`, `utils/tokens.js` — 15-minute access tokens, rotating 7-day refresh tokens with a TTL index
+- `/auth/refresh` and `/auth/logout` endpoints
+- Frontend: axios refresh interceptor with single-flight deduplication, field-level validation errors
+
+**Nigama — Notifications & Dashboard**
+- `models/Notification.js`, `utils/notify.js`, `controllers/notificationController.js`
+- Notification triggers on claim received, approved, and rejected
+- `controllers/dashboardController.js` — aggregated statistics in a single query batch
+- Frontend: `NotificationBell` (polling, unread badge, dropdown, mark-read), `Dashboard` page
+
+**Jayaram — Media & Deployment**
+- `config/cloudinary.js`, `middleware/upload.js`, `controllers/uploadController.js`
+- Graceful degradation to a paste-a-link field when Cloudinary is unconfigured
+- Vercel and Render deployment, `vercel.json` SPA rewrites, MongoDB Atlas setup, environment variables
+- `test.http` — 34 chained API requests; this documentation
