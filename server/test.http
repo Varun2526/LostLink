@@ -1,0 +1,143 @@
+@baseUrl = http://localhost:5001/api
+
+# paste the token you get from signup/login here
+@token = PASTE_TOKEN_HERE
+
+# paste a post id you get from "Create Found Post" here
+@postId = PASTE_POST_ID_HERE
+
+# second user's token, used for the claim requests
+@claimantToken = PASTE_SECOND_USER_TOKEN_HERE
+
+# paste a claim id you get from "Create Claim" here
+@claimId = PASTE_CLAIM_ID_HERE
+
+
+### Health Check
+GET {{baseUrl}}/health
+
+
+### Signup
+POST {{baseUrl}}/auth/signup
+Content-Type: application/json
+
+{
+  "name": "Varun",
+  "email": "varun@lostlink.com",
+  "password": "123456",
+  "campus": "Anurag University"
+}
+
+
+### Login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "varun@lostlink.com",
+  "password": "123456"
+}
+
+
+### Create Found Post (protected)
+POST {{baseUrl}}/posts
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "type": "found",
+  "title": "Black Wallet",
+  "category": "documents",
+  "description": "Black leather wallet found near the library",
+  "location": "Central Library",
+  "date": "2026-08-27",
+  "verificationQuestion": "What color was the ID card?",
+  "verificationAnswer": "Blue"
+}
+
+
+### Create Lost Post (protected)
+POST {{baseUrl}}/posts
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "type": "lost",
+  "title": "Lost iPhone 13",
+  "category": "electronics",
+  "description": "Blue iPhone lost near the canteen",
+  "location": "Canteen",
+  "date": "2026-08-26"
+}
+
+
+### Get All Posts
+GET {{baseUrl}}/posts
+
+
+### Get Single Post
+GET {{baseUrl}}/posts/{{postId}}
+
+
+### Search by keyword
+GET {{baseUrl}}/posts/search?q=wallet
+
+
+### Search by category
+GET {{baseUrl}}/posts/search?category=electronics
+
+
+### Search by category + keyword
+GET {{baseUrl}}/posts/search?category=electronics&q=phone
+
+
+### Update Post (protected, owner only)
+PATCH {{baseUrl}}/posts/{{postId}}
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "title": "Black Leather Wallet",
+  "location": "Library Gate 2"
+}
+
+
+### Delete Post (protected, owner only)
+DELETE {{baseUrl}}/posts/{{postId}}
+Authorization: Bearer {{token}}
+
+
+### Possible Matches for a post
+GET {{baseUrl}}/posts/{{postId}}/matches
+
+
+### Create Claim (protected, second user)
+POST {{baseUrl}}/claims
+Content-Type: application/json
+Authorization: Bearer {{claimantToken}}
+
+{
+  "postId": "{{postId}}",
+  "answer": "Blue",
+  "message": "I lost it on Tuesday near the library"
+}
+
+
+### My Claims (claims I submitted)
+GET {{baseUrl}}/claims/my
+Authorization: Bearer {{claimantToken}}
+
+
+### Received Claims (claims on my posts)
+GET {{baseUrl}}/claims/received
+Authorization: Bearer {{token}}
+
+
+### Approve Claim (post owner only)
+PATCH {{baseUrl}}/claims/{{claimId}}/approve
+Authorization: Bearer {{token}}
+
+
+### Reject Claim (post owner only)
+PATCH {{baseUrl}}/claims/{{claimId}}/reject
+Authorization: Bearer {{token}}
