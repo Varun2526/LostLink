@@ -1,7 +1,8 @@
 const express = require("express");
-const mongoose = require("mongoose");
 const cors = require("cors");
 const dotenv = require("dotenv");
+
+const connectDB = require("./src/config/db");
 
 dotenv.config();
 
@@ -24,18 +25,11 @@ app.get("/api/health", (req, res) => {
 const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
-  try {
-    await mongoose.connect(process.env.MONGO_URI);
+  await connectDB();
 
-    console.log("MongoDB connected successfully");
-
-    app.listen(PORT, () => {
-      console.log(`LostLink server running on http://localhost:${PORT}`);
-    });
-  } catch (error) {
-    console.error("MongoDB connection failed:", error.message);
-    process.exit(1);
-  }
+  app.listen(PORT, () => {
+    console.log(`LostLink server running on http://localhost:${PORT}`);
+  });
 };
 
 startServer();
