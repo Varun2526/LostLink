@@ -1,17 +1,28 @@
 import axios from "axios";
 
-// The API always lives under /api. A base URL missing that suffix silently
-// 404s every request, so we fix it here instead of trusting the env var.
-const normalizeBaseUrl = (url) => {
-  const trimmed = url.replace(/\/+$/, "");
+const DEFAULT_API_URL = "https://lostlink-3mkr.onrender.com/api";
+
+// The value must be an absolute URL ending in /api. Two easy mistakes:
+// pasting the whole "VITE_API_URL=..." line into the dashboard value field,
+// and leaving the /api off. Either one makes axios post to the frontend's
+// own origin and 404, so we repair both here rather than trust the env var.
+const normalizeBaseUrl = (value) => {
+  const cleaned = String(value || "")
+    .trim()
+    .replace(/^VITE_API_URL\s*=\s*/, "")
+    .replace(/^["']|["']$/g, "");
+
+  if (!/^https?:\/\//.test(cleaned)) {
+    return DEFAULT_API_URL;
+  }
+
+  const trimmed = cleaned.replace(/\/+$/, "");
 
   return trimmed.endsWith("/api") ? trimmed : `${trimmed}/api`;
 };
 
-const DEFAULT_API_URL = "https://lostlink-3mkr.onrender.com/api";
-
 const api = axios.create({
-  baseURL: normalizeBaseUrl(import.meta.env.VITE_API_URL || DEFAULT_API_URL),
+  baseURL: normalizeBaseUrl(import.meta.env.VITE_API_URL),
 });
 
 // attach the saved token to every request
