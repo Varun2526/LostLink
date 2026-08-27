@@ -9,11 +9,14 @@ import {
 } from "../controllers/claimController.js";
 
 import authMiddleware from "../middleware/authMiddleware.js";
+import validate from "../middleware/validate.js";
+import { writeLimiter } from "../middleware/rateLimiter.js";
+import { createClaimRules } from "../validators/claimValidators.js";
 
 const router = express.Router();
 
 // every claim route needs a logged in user
-router.post("/", authMiddleware, createClaim);
+router.post("/", authMiddleware, writeLimiter, createClaimRules, validate, createClaim);
 
 router.get("/my", authMiddleware, getMyClaims);
 

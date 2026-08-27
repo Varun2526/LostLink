@@ -25,7 +25,19 @@ const api = axios.create({
   baseURL: normalizeBaseUrl(import.meta.env.VITE_API_URL),
 });
 
-// attach the saved token to every request
+const clearSession = () => {
+  localStorage.removeItem("token");
+  localStorage.removeItem("refreshToken");
+  localStorage.removeItem("user");
+};
+
+const goToLogin = () => {
+  if (window.location.pathname !== "/login") {
+    window.location.href = "/login";
+  }
+};
+
+// attach the saved access token to every request
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
 
@@ -36,17 +48,74 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// if the token is dead, log out and send the user to login
+// The access token only lives 15 minutes. When one expires we swap the
+// refresh token for a new pair and replay the failed request, so the user
+// never sees a logout. Requests that fail while a refresh is already in
+// flight wait for that same refresh instead of firing their own.
+let refreshPromise = null;
+
+const runRefresh = async () => {
+  const refreshToken = localStorage.getItem("refreshToken");
+
+  if (!refreshToken) {
+    throw new Error("no refresh token");
+  }
+
+  // a bare axios call, so it does not loop back through this interceptor
+  const res = await axios.post(`${api.defaults.baseURL}/auth/refresh`, {
+    refreshToken,
+  });
+
+  localStorage.setItem("token", res.data.token);
+  localStorage.setItem("refreshToken", res.data.refreshToken);
+
+  if (res.data.user) {
+    localStorage.setItem("user", JSON.stringify(res.data.user));
+  }
+
+  return res.data.token;
+};
+
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response && error.response.status === 401) {
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
+  async (error) => {
+    const original = error.config;
 
-      if (window.location.pathname !== "/login") {
-        window.location.href = "/login";
+    const isAuthCall =
+      original && original.url && original.url.includes("/auth/");
+
+    if (
+      error.response &&
+      error.response.status === 401 &&
+      original &&
+      !original._retried &&
+      !isAuthCall
+    ) {
+      original._retried = true;
+
+      try {
+        if (!refreshPromise) {
+          refreshPromise = runRefresh().finally(() => {
+            refreshPromise = null;
+          });
+        }
+
+        const newToken = await refreshPromise;
+
+        original.headers.Authorization = `Bearer ${newToken}`;
+
+        return api(original);
+      } catch {
+        clearSession();
+        goToLogin();
+
+        return Promise.reject(error);
       }
+    }
+
+    if (error.response && error.response.status === 401 && isAuthCall) {
+      // a failed login or a dead refresh token, let the page show it
+      return Promise.reject(error);
     }
 
     return Promise.reject(error);
@@ -68,5 +137,15 @@ const getErrorMessage = (error, fallback = "Something went wrong") => {
   return `${fallback} (server returned ${error.response.status})`;
 };
 
-export { getErrorMessage };
+// express-validator sends { fields: { email: "...", password: "..." } }
+// so a form can show the message under the right input.
+const getFieldErrors = (error) => {
+  if (error.response && error.response.data && error.response.data.fields) {
+    return error.response.data.fields;
+  }
+
+  return {};
+};
+
+export { getErrorMessage, getFieldErrors, clearSession };
 export default api;

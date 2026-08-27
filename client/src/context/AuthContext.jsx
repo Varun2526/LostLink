@@ -1,6 +1,6 @@
 import { createContext, useContext, useState } from "react";
 
-import api from "../api/axios.js";
+import api, { clearSession } from "../api/axios.js";
 
 const AuthContext = createContext(null);
 
@@ -13,6 +13,7 @@ const AuthProvider = ({ children }) => {
 
   const save = (data) => {
     localStorage.setItem("token", data.token);
+    localStorage.setItem("refreshToken", data.refreshToken);
     localStorage.setItem("user", JSON.stringify(data.user));
 
     setUser(data.user);
@@ -30,10 +31,20 @@ const AuthProvider = ({ children }) => {
     save(res.data);
   };
 
-  const logout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+  // tell the server to revoke the refresh token as well, so the session
+  // cannot be resumed with a stolen copy of it
+  const logout = async () => {
+    const refreshToken = localStorage.getItem("refreshToken");
 
+    try {
+      if (refreshToken) {
+        await api.post("/auth/logout", { refreshToken });
+      }
+    } catch {
+      // logging out locally matters more than the server call succeeding
+    }
+
+    clearSession();
     setUser(null);
   };
 

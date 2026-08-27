@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
-import { getErrorMessage } from "../api/axios.js";
+import { getErrorMessage, getFieldErrors } from "../api/axios.js";
 import { useAuth } from "../context/AuthContext.jsx";
 
 const Login = () => {
@@ -10,16 +10,22 @@ const Login = () => {
 
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+
+    if (fieldErrors[e.target.name]) {
+      setFieldErrors({ ...fieldErrors, [e.target.name]: "" });
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     setError("");
+    setFieldErrors({});
     setLoading(true);
 
     try {
@@ -28,6 +34,7 @@ const Login = () => {
       navigate("/");
     } catch (err) {
       setError(getErrorMessage(err, "Something went wrong"));
+      setFieldErrors(getFieldErrors(err));
     }
 
     setLoading(false);
@@ -55,6 +62,9 @@ const Login = () => {
             required
             className="mt-1 w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-indigo-500"
           />
+          {fieldErrors.email && (
+            <p className="text-xs text-red-600 mt-1">{fieldErrors.email}</p>
+          )}
         </div>
 
         <div>
@@ -67,6 +77,9 @@ const Login = () => {
             required
             className="mt-1 w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-indigo-500"
           />
+          {fieldErrors.password && (
+            <p className="text-xs text-red-600 mt-1">{fieldErrors.password}</p>
+          )}
         </div>
 
         <button

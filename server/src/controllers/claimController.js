@@ -2,6 +2,8 @@ import mongoose from "mongoose";
 
 import Claim from "../models/Claim.js";
 import ItemPost from "../models/ItemPost.js";
+import User from "../models/User.js";
+import notify from "../utils/notify.js";
 
 // answers are compared loosely so "Blue " and "blue" both work
 const normalize = (value) => {
@@ -73,6 +75,16 @@ const createClaim = async (req, res) => {
       answerMatched,
       message: message || "",
       status: "pending",
+    });
+
+    const claimant = await User.findById(req.userId).select("name");
+
+    await notify({
+      user: post.postedBy,
+      type: "claim_received",
+      title: "New claim on your post",
+      body: `${claimant ? claimant.name : "Someone"} claimed "${post.title}"`,
+      link: "/received-claims",
     });
 
     // the claimant is never told whether the answer matched,
@@ -188,7 +200,37 @@ const approveClaim = async (req, res) => {
       await post.save();
     }
 
+    await notify({
+      user: claim.claimant,
+      type: "claim_approved",
+      title: "Your claim was approved",
+      body: post
+        ? `You can collect "${post.title}" from the finder`
+        : "You can collect the item from the finder",
+      link: "/my-claims",
+    });
+
     // everyone else waiting on this post is rejected
+    const others = await Claim.find({
+      post: claim.post,
+      _id: { $ne: claim._id },
+      status: "pending",
+    }).select("claimant");
+
+    await Promise.all(
+      others.map((other) =>
+        notify({
+          user: other.claimant,
+          type: "claim_rejected",
+          title: "Your claim was not approved",
+          body: post
+            ? `Someone else was verified as the owner of "${post.title}"`
+            : "Someone else was verified as the owner",
+          link: "/my-claims",
+        })
+      )
+    );
+
     await Claim.updateMany(
       {
         post: claim.post,
@@ -250,6 +292,18 @@ const rejectClaim = async (req, res) => {
     claim.status = "rejected";
 
     await claim.save();
+
+    const rejectedPost = await ItemPost.findById(claim.post).select("title");
+
+    await notify({
+      user: claim.claimant,
+      type: "claim_rejected",
+      title: "Your claim was not approved",
+      body: rejectedPost
+        ? `The finder rejected your claim on "${rejectedPost.title}"`
+        : "The finder rejected your claim",
+      link: "/my-claims",
+    });
 
     res.json({
       message: "Claim rejected successfully",

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import api, { getErrorMessage } from "../api/axios.js";
+import api, { getErrorMessage, getFieldErrors } from "../api/axios.js";
 
 const CreatePost = () => {
   const navigate = useNavigate();
@@ -18,16 +18,53 @@ const CreatePost = () => {
     verificationAnswer: "",
   });
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+
+    // clear the error under a field as soon as it is edited
+    if (fieldErrors[e.target.name]) {
+      setFieldErrors({ ...fieldErrors, [e.target.name]: "" });
+    }
+  };
+
+  // sends the chosen file to the backend, which streams it to Cloudinary
+  // and returns a url we drop straight into imageUrl
+  const handleFile = async (e) => {
+    const file = e.target.files[0];
+
+    if (!file) {
+      return;
+    }
+
+    setError("");
+    setUploading(true);
+
+    try {
+      const data = new FormData();
+
+      data.append("image", file);
+
+      const res = await api.post("/upload", data, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      setForm((current) => ({ ...current, imageUrl: res.data.imageUrl }));
+    } catch (err) {
+      setError(getErrorMessage(err, "Could not upload the image"));
+    }
+
+    setUploading(false);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     setError("");
+    setFieldErrors({});
     setLoading(true);
 
     try {
@@ -36,6 +73,7 @@ const CreatePost = () => {
       navigate(`/posts/${res.data.post._id}`);
     } catch (err) {
       setError(getErrorMessage(err, "Could not create the post"));
+      setFieldErrors(getFieldErrors(err));
     }
 
     setLoading(false);
@@ -158,8 +196,29 @@ const CreatePost = () => {
 
         <div>
           <label className="text-sm font-medium text-slate-700">
-            Image URL <span className="text-slate-400">(optional)</span>
+            Photo <span className="text-slate-400">(optional)</span>
           </label>
+
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleFile}
+            disabled={uploading}
+            className="mt-1 w-full text-sm text-slate-600 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 disabled:opacity-60"
+          />
+
+          {uploading && (
+            <p className="text-xs text-slate-500 mt-2">Uploading...</p>
+          )}
+
+          {/* Uploading needs Cloudinary configured on the server. Pasting a
+              link always works, so both options stay available. */}
+          <div className="flex items-center gap-3 mt-3">
+            <span className="h-px flex-1 bg-slate-200" />
+            <span className="text-xs text-slate-400">or paste a link</span>
+            <span className="h-px flex-1 bg-slate-200" />
+          </div>
+
           <input
             name="imageUrl"
             value={form.imageUrl}
@@ -167,6 +226,28 @@ const CreatePost = () => {
             placeholder="https://..."
             className={inputClass}
           />
+
+          {form.imageUrl && !uploading && (
+            <div className="mt-3 flex items-start gap-3">
+              <img
+                src={form.imageUrl}
+                alt="Image preview"
+                className="w-24 h-24 object-cover rounded-lg border border-slate-200"
+              />
+
+              <button
+                type="button"
+                onClick={() => setForm({ ...form, imageUrl: "" })}
+                className="text-xs text-red-600 hover:text-red-700"
+              >
+                Remove
+              </button>
+            </div>
+          )}
+
+          {fieldErrors.imageUrl && (
+            <p className="text-xs text-red-600 mt-1">{fieldErrors.imageUrl}</p>
+          )}
         </div>
 
         {form.type === "found" && (
@@ -211,7 +292,7 @@ const CreatePost = () => {
 
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || uploading}
           className="w-full bg-indigo-600 text-white py-2.5 rounded-lg hover:bg-indigo-700 disabled:opacity-60"
         >
           {loading ? "Posting..." : "Post item"}

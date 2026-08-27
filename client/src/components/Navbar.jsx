@@ -1,13 +1,14 @@
 import { Link, NavLink, useNavigate } from "react-router-dom";
 
 import { useAuth } from "../context/AuthContext.jsx";
+import NotificationBell from "./NotificationBell.jsx";
 
 const Navbar = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate("/login");
   };
 
@@ -29,6 +30,9 @@ const Navbar = () => {
             <NavLink to="/" className={linkClass} end>
               Browse
             </NavLink>
+            <NavLink to="/dashboard" className={linkClass}>
+              Dashboard
+            </NavLink>
             <NavLink to="/my-posts" className={linkClass}>
               My Posts
             </NavLink>
@@ -44,6 +48,8 @@ const Navbar = () => {
         <div className="ml-auto flex items-center gap-3">
           {user ? (
             <>
+              <NotificationBell />
+
               <Link
                 to="/create"
                 className="bg-indigo-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-indigo-700"

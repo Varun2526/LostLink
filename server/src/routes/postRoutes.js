@@ -12,6 +12,12 @@ import {
 } from "../controllers/postController.js";
 
 import authMiddleware from "../middleware/authMiddleware.js";
+import validate from "../middleware/validate.js";
+import { writeLimiter } from "../middleware/rateLimiter.js";
+import {
+  createPostRules,
+  updatePostRules,
+} from "../validators/postValidators.js";
 
 const router = express.Router();
 
@@ -29,9 +35,9 @@ router.get("/:id", getPostById);
 router.get("/:id/matches", getMatches);
 
 // protected routes
-router.post("/", authMiddleware, createPost);
+router.post("/", authMiddleware, writeLimiter, createPostRules, validate, createPost);
 
-router.patch("/:id", authMiddleware, updatePost);
+router.patch("/:id", authMiddleware, updatePostRules, validate, updatePost);
 
 router.delete("/:id", authMiddleware, deletePost);
 
