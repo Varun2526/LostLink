@@ -500,7 +500,7 @@ Both platforms redeploy automatically on push to `main`. `VITE_API_URL` is inlin
 |---|---|---|
 | **Varun Koppula** | Authentication & Item Posts | User model, signup/login, JWT middleware, ItemPost model, post CRUD, search & filtering, frontend integration |
 | **Nimishakavi Sri Nihal** | Claims & Matching | Claim model, claim lifecycle (submit/approve/reject), verification answer comparison, rule-based matching engine |
-| **Hareesh** | Security & Sessions | Rate limiting (3 tiers), input validation & sanitization, refresh-token rotation, logout revocation |
+| **Hareesh** | Security, Sessions & Auth UI | Login and signup pages, rate limiting (3 tiers), input validation & sanitization, refresh-token rotation, logout revocation |
 | **Nigama** | Notifications & Dashboard | Notification model & triggers, notification bell UI, dashboard statistics endpoint and page |
 | **Jayaram** | UI Shell, Media & Deployment | App shell & Tailwind setup, shared navigation, Cloudinary upload pipeline, Vercel/Render/Atlas deployment, documentation & API testing |
 
@@ -513,8 +513,8 @@ Every member owns a **full vertical slice** — the Mongoose model, controller, 
 - `controllers/authController.js` (signup, login), `middleware/authMiddleware.js`
 - `controllers/postController.js` — create, read, update, delete, search, my-posts
 - Enforced the rule that `verificationAnswer` is never returned by any public endpoint
-- Frontend: `Login`, `Signup`, `Home` (browse + search), `CreatePost`, `MyPosts`
-- Frontend shared: `App.jsx` route table, `ProtectedRoute`, `PostCard`, `AuthContext`, base axios client
+- Frontend: `Home` (browse + search), `CreatePost`, `MyPosts`
+- Frontend shared: `App.jsx` route table, `ProtectedRoute`, `PostCard`, base axios client
 
 **Nimishakavi Sri Nihal — Claims & Matching**
 - `models/Claim.js`, `controllers/claimController.js`
@@ -528,7 +528,8 @@ Every member owns a **full vertical slice** — the Mongoose model, controller, 
 - `middleware/validate.js` and `validators/` — auth, post, and claim rule sets
 - `models/RefreshToken.js`, `utils/tokens.js` — 15-minute access tokens, rotating 7-day refresh tokens with a TTL index
 - `/auth/refresh` and `/auth/logout` endpoints
-- Frontend: axios refresh interceptor with single-flight deduplication, field-level validation errors
+- Frontend: `Login` and `Signup` pages, including the field-level validation error display
+- Frontend: `AuthContext` session state, axios refresh interceptor with single-flight deduplication
 
 **Nigama — Notifications & Dashboard**
 - `models/Notification.js`, `utils/notify.js`, `controllers/notificationController.js`
